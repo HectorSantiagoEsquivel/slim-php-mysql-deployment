@@ -1,25 +1,25 @@
 <?php
-require_once './models/Usuario.php';
+require_once './models/Producto.php';
 require_once './interfaces/IApiUsable.php';
 
-class UsuarioController extends Usuario implements IApiUsable
+class ProductoController extends Producto implements IApiUsable
 {
     public function CargarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
 
-        $usuario = $parametros['usuario'];
-        $clave = $parametros['clave'];
+        $nombre = $parametros['nombre'];
+        $precio = $parametros['precio'];
         $area = $parametros['area'];
 
-        // Creamos el usuario
-        $usr = new Usuario();
-        $usr->usuario = $usuario;
-        $usr->clave = $clave;
-        $usr->area = $area;
-        $usr->crearUsuario();
+        // Creamos el nombre
+        $producto = new Producto();
+        $producto->nombre = $nombre;
+        $producto->precio = $precio;
+        $producto->area = $area;
+        $producto->crearProducto();
 
-        $payload = json_encode(array("mensaje" => "Usuario creado con exito"));
+        $payload = json_encode(array("mensaje" => "Producto creado con exito"));
 
         $response->getBody()->write($payload);
         return $response
@@ -30,20 +30,22 @@ class UsuarioController extends Usuario implements IApiUsable
     {
         $parametros = $request->getParsedBody();
 
-        $usuario = $parametros['usuario'];
-        $clave = $parametros['clave'];
+        $nombre = $parametros['nombre'];
+        $precio = $parametros['precio'];
         $area = $parametros['area'];
+        $disponible= $parametros['disponible'];
         $id = $parametros['id'];
         
-        $usr = new Usuario();
-        $usr->usuario = $usuario;
-        $usr->clave = $clave;
-        $usr->area = $area;
-        $usr->id = $id;
+        $producto = new Producto();
+        $producto->nombre = $nombre;
+        $producto->precio = $precio;
+        $producto->area = $area;
+        $producto->id = $id;
+        $producto->disponible=$disponible;
 
-        $usr->modificarUsuario();
+        $producto->modificarProducto();
 
-        $payload = json_encode(array("mensaje" => "Usuario modificado con exito"));
+        $payload = json_encode(array("mensaje" => "Producto modificado con exito"));
 
         $response->getBody()->write($payload);
         return $response
@@ -55,9 +57,9 @@ class UsuarioController extends Usuario implements IApiUsable
         $parametros = $request->getParsedBody();
 
         $id = $parametros['id'];
-        Usuario::borrarUsuario($id);
+        Producto::borrarProducto($id);
 
-        $payload = json_encode(array("mensaje" => "Usuario borrado con exito"));
+        $payload = json_encode(array("mensaje" => "Producto borrado con exito"));
 
         $response->getBody()->write($payload);
         return $response
@@ -66,10 +68,10 @@ class UsuarioController extends Usuario implements IApiUsable
 
     public function TraerUno($request, $response, $args)
     {
-        // Buscamos usuario por nombre
-        $usr = $args['usuario'];
-        $usuario = Usuario::obtenerUsuario($usr);
-        $payload = json_encode($usuario);
+
+        $producto = $args['producto'];
+        $id = Producto::obtenerProducto($producto);
+        $payload = json_encode($id);
 
         $response->getBody()->write($payload);
         return $response
@@ -78,8 +80,8 @@ class UsuarioController extends Usuario implements IApiUsable
 
     public function TraerTodos($request, $response, $args)
     {
-        $lista = Usuario::obtenerTodos();
-        $payload = json_encode(array("listaUsuario" => $lista));
+        $lista = Producto::obtenerTodos();
+        $payload = json_encode(array("listaProducto" => $lista));
 
         $response->getBody()->write($payload);
         return $response
