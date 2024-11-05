@@ -26,7 +26,7 @@ class UsuarioController extends Usuario implements IApiUsable
           ->withHeader('Content-Type', 'application/json');
     }
 
-        public function ModificarUno($request, $response, $args)
+    public function ModificarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
 
@@ -66,7 +66,6 @@ class UsuarioController extends Usuario implements IApiUsable
 
     public function TraerUno($request, $response, $args)
     {
-        // Buscamos usuario por nombre
         $usr = $args['usuario'];
         $usuario = Usuario::obtenerUsuario($usr);
         $payload = json_encode($usuario);

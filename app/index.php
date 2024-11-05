@@ -13,7 +13,8 @@ use Slim\Routing\RouteContext;
 require __DIR__ . '/../vendor/autoload.php';
 
 require_once './db/AccesoDatos.php';
-// require_once './middlewares/Logger.php';
+require_once './middlewares/Logger.php';
+require_once './middlewares/MiddlewareUsuarios.php';
 
 require_once './controllers/UsuarioController.php';
 require_once './controllers/MesaController.php';
@@ -39,7 +40,7 @@ $app->group('/usuarios', function (RouteCollectorProxy $group) {
     $group->post('[/]', \UsuarioController::class . ':CargarUno');
     $group->post('/modificar', \UsuarioController::class . ':ModificarUno');
     $group->post('/borrar', \UsuarioController::class . ':BorrarUno');
-  });
+  })->add(MiddlewareUsuarios::class);
 
 $app->group('/mesas', function (RouteCollectorProxy $group) 
 {
@@ -49,7 +50,7 @@ $app->group('/mesas', function (RouteCollectorProxy $group)
   $group->post('/modificar', \MesaController::class . ':ModificarUno');
   $group->post('/borrar', \MesaController::class . ':BorrarUno');
   
-});
+})->add(MiddlewareUsuarios::class);
 
 $app->group('/productos', function (RouteCollectorProxy $group) 
 {
@@ -59,15 +60,7 @@ $app->group('/productos', function (RouteCollectorProxy $group)
   $group->post('/modificar', \ProductoController::class . ':ModificarUno');
   $group->post('/borrar', \ProductoController::class . ':BorrarUno');
   
-});
-
-$app->group('/usuarios', function (RouteCollectorProxy $group) {
-  $group->get('[/]', \UsuarioController::class . ':TraerTodos');
-  $group->get('/{usuario}', \UsuarioController::class . ':TraerUno');
-  $group->post('[/]', \UsuarioController::class . ':CargarUno');
-  $group->post('/modificar', \UsuarioController::class . ':ModificarUno');
-  $group->post('/borrar', \UsuarioController::class . ':BorrarUno');
-});
+})->add(MiddlewareUsuarios::class);
 
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidosController::class . ':TraerTodos');
