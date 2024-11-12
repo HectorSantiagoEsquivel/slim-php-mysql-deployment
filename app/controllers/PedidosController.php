@@ -4,6 +4,7 @@ require_once './interfaces/IApiUsable.php';
 
 class PedidosController extends Pedido implements IApiUsable
 {
+    
     public function CargarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
@@ -11,43 +12,34 @@ class PedidosController extends Pedido implements IApiUsable
         $idMesa = $parametros['idMesa'];
         $idProducto = $parametros['idProducto'];
         $cantidad = $parametros['cantidad'];
+        $estado = $parametros['estado'];
+        $tiempoEstimado = $parametros['tiempoEstimado'];
 
-
-    
-        // Creamos el nombre
         $pedido = new Pedido();
         $pedido->idMesa = $idMesa;
-        $pedido->idProducto = $idProducto;
-        $pedido->cantidad = $cantidad;
 
-        $pedido->crearPedido();
+        $idPedido= $pedido->crearPedido();
+
+        Pedido::agregarProductoAlPedido($idPedido,$idProducto,$cantidad,$estado,$tiempoEstimado);
 
         $payload = json_encode(array("mensaje" => "Pedido creado con exito"));
 
         $response->getBody()->write($payload);
         return $response
-          ->withHeader('Content-Type', 'application/json');
+            ->withHeader('Content-Type', 'application/json');
     }
 
-        public function ModificarUno($request, $response, $args)
+
+    public function ModificarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
 
         $id = $parametros['id'];
         $idMesa = $parametros['idMesa'];
-        $idProducto = $parametros['idProducto'];
-        $cantidad = $parametros['cantidad'];
-        $estado = $parametros['estado'];
-        $tiempoEstimado =$parametros['tiempoEstimado'];
-    
-        // Creamos el nombre
-        $pedido= new Pedido();
-        $pedido->id=$id;
+
+        $pedido = new Pedido();
+        $pedido->id = $id;
         $pedido->idMesa = $idMesa;
-        $pedido->idProducto = $idProducto;
-        $pedido->cantidad = $cantidad;
-        $pedido->estado=$estado;
-        $pedido->tiempoEstimado=$tiempoEstimado;
 
         $pedido->modificarPedido();
 
@@ -55,8 +47,9 @@ class PedidosController extends Pedido implements IApiUsable
 
         $response->getBody()->write($payload);
         return $response
-          ->withHeader('Content-Type', 'application/json');
+            ->withHeader('Content-Type', 'application/json');
     }
+
 
     public function BorrarUno($request, $response, $args)
     {
@@ -69,20 +62,21 @@ class PedidosController extends Pedido implements IApiUsable
 
         $response->getBody()->write($payload);
         return $response
-          ->withHeader('Content-Type', 'application/json');
+            ->withHeader('Content-Type', 'application/json');
     }
+
 
     public function TraerUno($request, $response, $args)
     {
-
         $pedido = $args['pedido'];
         $id = Pedido::obtenerPedido($pedido);
         $payload = json_encode($id);
 
         $response->getBody()->write($payload);
         return $response
-          ->withHeader('Content-Type', 'application/json');
+            ->withHeader('Content-Type', 'application/json');
     }
+
 
     public function TraerTodos($request, $response, $args)
     {
@@ -91,8 +85,6 @@ class PedidosController extends Pedido implements IApiUsable
 
         $response->getBody()->write($payload);
         return $response
-          ->withHeader('Content-Type', 'application/json');
+            ->withHeader('Content-Type', 'application/json');
     }
-    
-
 }

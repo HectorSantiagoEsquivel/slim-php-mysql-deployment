@@ -39,6 +39,18 @@ class Usuario
         return $consulta->fetchObject('Usuario');
     }
 
+    public static function autenticar($idUsuario, $clave)
+    {
+       
+        $usuario = self::obtenerUsuario($idUsuario);
+        if ($usuario && password_verify($clave, $usuario->clave)) 
+        {
+            return $usuario; 
+        }
+
+        return null; 
+    }
+
     public function modificarUsuario()
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();

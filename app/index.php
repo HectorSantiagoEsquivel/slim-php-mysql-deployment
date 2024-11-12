@@ -34,6 +34,11 @@ $app->addErrorMiddleware(true, true, true);
 $app->addBodyParsingMiddleware();
 
 // Routes
+$app->group('/login', function (RouteCollectorProxy $group)
+{
+  $group->post('[/]', \UsuarioController::class . ':LogIn');
+});
+
 $app->group('/usuarios', function (RouteCollectorProxy $group) {
     $group->get('[/]', \UsuarioController::class . ':TraerTodos');
     $group->get('/{usuario}', \UsuarioController::class . ':TraerUno');

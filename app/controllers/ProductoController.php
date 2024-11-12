@@ -4,6 +4,7 @@ require_once './interfaces/IApiUsable.php';
 
 class ProductoController extends Producto implements IApiUsable
 {
+    static $areasValidas = array("cerveceria","cocina","candy","barra");
     public function CargarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
@@ -12,14 +13,20 @@ class ProductoController extends Producto implements IApiUsable
         $precio = $parametros['precio'];
         $area = $parametros['area'];
 
-        // Creamos el nombre
-        $producto = new Producto();
-        $producto->nombre = $nombre;
-        $producto->precio = $precio;
-        $producto->area = $area;
-        $producto->crearProducto();
-
-        $payload = json_encode(array("mensaje" => "Producto creado con exito"));
+        if(Validador::ValidarPalabra($area,self::$areasValidas))
+        {
+          $producto = new Producto();
+          $producto->nombre = $nombre;
+          $producto->precio = $precio;
+          $producto->area = $area;
+          $producto->crearProducto();
+  
+          $payload = json_encode(array("mensaje" => "Producto creado con exito"));
+        }
+        else
+        {
+          $payload = json_encode(array("mensaje" => "Producto no valido"));
+        }
 
         $response->getBody()->write($payload);
         return $response
@@ -35,17 +42,24 @@ class ProductoController extends Producto implements IApiUsable
         $area = $parametros['area'];
         $disponible= $parametros['disponible'];
         $id = $parametros['id'];
-        
-        $producto = new Producto();
-        $producto->nombre = $nombre;
-        $producto->precio = $precio;
-        $producto->area = $area;
-        $producto->id = $id;
-        $producto->disponible=$disponible;
 
-        $producto->modificarProducto();
-
-        $payload = json_encode(array("mensaje" => "Producto modificado con exito"));
+        if(Validador::ValidarPalabra($area,self::$areasValidas))
+        {
+          $producto = new Producto();
+          $producto->nombre = $nombre;
+          $producto->precio = $precio;
+          $producto->area = $area;
+          $producto->id = $id;
+          $producto->disponible=$disponible;
+  
+          $producto->modificarProducto();
+  
+          $payload = json_encode(array("mensaje" => "Producto modificado con exito"));
+        }
+        else
+        {
+          $payload = json_encode(array("mensaje" => "Modificacion no valida"));
+        }
 
         $response->getBody()->write($payload);
         return $response

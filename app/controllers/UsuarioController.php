@@ -1,9 +1,11 @@
 <?php
 require_once './models/Usuario.php';
 require_once './interfaces/IApiUsable.php';
+require_once './utils/Validador.php';
 
 class UsuarioController extends Usuario implements IApiUsable
 {
+    static $areasValidas = array("socio", "mozo","cerveceria","cocina","candy","barra");
     public function CargarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
@@ -13,13 +15,21 @@ class UsuarioController extends Usuario implements IApiUsable
         $area = $parametros['area'];
 
         // Creamos el usuario
-        $usr = new Usuario();
-        $usr->usuario = $usuario;
-        $usr->clave = $clave;
-        $usr->area = $area;
-        $usr->crearUsuario();
+        if(Validador::ValidarPalabra($area,self::$areasValidas))
+        {
+          $usr = new Usuario();
+          $usr->usuario = $usuario;
+          $usr->clave = $clave;
+          $usr->area = $area;
+          $usr->crearUsuario();
+  
+          $payload = json_encode(array("mensaje" => "Usuario creado con exito"));
+        }
+        else
+        {
+          $payload = json_encode(array("mensaje" => "Usuario no valido"));
+        }
 
-        $payload = json_encode(array("mensaje" => "Usuario creado con exito"));
 
         $response->getBody()->write($payload);
         return $response
@@ -34,16 +44,22 @@ class UsuarioController extends Usuario implements IApiUsable
         $clave = $parametros['clave'];
         $area = $parametros['area'];
         $id = $parametros['id'];
-        
-        $usr = new Usuario();
-        $usr->usuario = $usuario;
-        $usr->clave = $clave;
-        $usr->area = $area;
-        $usr->id = $id;
-
-        $usr->modificarUsuario();
-
-        $payload = json_encode(array("mensaje" => "Usuario modificado con exito"));
+        if(Validador::ValidarPalabra($area,self::$areasValidas))
+        {
+          $usr = new Usuario();
+          $usr->usuario = $usuario;
+          $usr->clave = $clave;
+          $usr->area = $area;
+          $usr->id = $id;
+  
+          $usr->modificarUsuario();
+  
+          $payload = json_encode(array("mensaje" => "Usuario modificado con exito"));
+        }
+        else
+        {
+          $payload = json_encode(array("mensaje" => "Modificacion no valida"));
+        }
 
         $response->getBody()->write($payload);
         return $response
@@ -83,6 +99,29 @@ class UsuarioController extends Usuario implements IApiUsable
         $response->getBody()->write($payload);
         return $response
           ->withHeader('Content-Type', 'application/json');
+    }
+
+    public function LogIn($request, $response, $args)
+    {
+        $params = $request->getParsedBody();
+        $idUsuario = $params['idUsuario'];
+        $clave = $params['clave'];
+        $usuario=Usuario::autenticar($idUsuario, $clave);
+        if($usuario) 
+        {
+            $usuarioData = ['id' => $usuario->id, 'area' => $usuario->area];
+            $token = AutentificadorJWT::CrearToken($usuarioData);
+
+            $payload = json_encode(['token' => $token]);
+        } 
+        else
+        {
+            $payload = json_encode(['error' => 'contraseña o usuario no valido']);
+            $response = $response->withStatus(401);
+        }
+
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
     }
     
 
