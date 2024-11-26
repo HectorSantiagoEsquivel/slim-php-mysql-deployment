@@ -2,11 +2,11 @@
 
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class Pedido extends Model
 {
-    use SoftDeletes;
+
 
     protected $table = 'pedidos';
     protected $primaryKey = 'id';
@@ -31,7 +31,8 @@ class Pedido extends Model
 
     public static function ObtenerPedido($id)
     {
-        return Pedido::find($id);
+        return Pedido::where('id', '=', $id)
+        ->first();
     }
 
     public static function ObtenerPedidosActivos()

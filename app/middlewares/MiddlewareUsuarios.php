@@ -23,32 +23,25 @@ class MiddlewareUsuarios
         $header = $request->getHeaderLine('Autorizacion');
         $token = self::extraerToken($header);
 
-        try 
+        AutentificadorJWT::VerificarToken($token);       
+               
+        $usuarioData = AutentificadorJWT::ObtenerData($token);
+        
+        
+        if (Validador::ValidarPalabra($usuarioData->area,$this->areasValidas)) 
         {
             
-            AutentificadorJWT::VerificarToken($token);          
-            $usuarioData = AutentificadorJWT::ObtenerData($token);
-            
-            if (Validador::ValidarPalabra($usuarioData->area,$this->areasValidas)) 
-            {
-                $request = $request->withAttribute('usuarioData', $usuarioData);
-                $response = $handler->handle($request);
-            } 
-            else 
-            {
-
-                $response = new Response();
-                $payload = json_encode(["mensaje" => "Usuario no autorizado para realizar cambios"]);
-                $response->getBody()->write($payload);
-            }
-            
+            $request = $request->withAttribute('usuarioData', $usuarioData);
+           
+            $response = $handler->handle($request);
         } 
-        catch (Exception $e) 
+        else 
         {
             $response = new Response();
-            $payload = json_encode(["mensaje" => "ERROR: Hubo un error con el TOKEN"]);
+            $payload = json_encode(["mensaje" => "Usuario no autorizado para realizar cambios"]);
             $response->getBody()->write($payload);
         }
+
 
         return $response->withHeader('Content-Type', 'application/json');
     }

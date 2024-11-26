@@ -5,7 +5,7 @@ require_once './interfaces/IApiUsable.php';
 require_once './utils/Validador.php';
 require_once './utils/AutentificadorJWT.php';
 
-use app\models\Usuario;
+use App\Models\Usuario;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 

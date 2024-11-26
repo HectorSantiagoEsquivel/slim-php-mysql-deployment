@@ -3,9 +3,9 @@
 require_once './interfaces/IApiUsable.php';
 require_once './utils/Validador.php';
 
-use app\models\Mesa;
+use App\Models\Mesa;
 
-class MesaController extends Mesa implements IApiUsable
+class MesaController implements IApiUsable
 {
     static $estadosValidos = ["disponible", "ocupada", "cerrada"];
     public function CargarUno($request, $response, $args)

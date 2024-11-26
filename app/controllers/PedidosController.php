@@ -2,12 +2,13 @@
 require_once './models/Pedido.php';
 require_once './interfaces/IApiUsable.php';
 require_once './utils/Validador.php';
+require_once './utils/ControladorArchivos.php';
 
-use app\models\Pedido;
-use app\models\PedidoProducto;
-use app\models\Mesa;
-use app\models\Producto;
-use app\models\Usuario;
+use App\Models\Pedido;
+use App\Models\PedidoProducto;
+use App\Models\Mesa;
+use App\Models\Producto;
+use App\Models\Usuario;
 
 
 class PedidosController implements IApiUsable
@@ -19,7 +20,7 @@ class PedidosController implements IApiUsable
         $idMesa = $params['idMesa'];
         $mesa=Mesa::obtenerMesa($idMesa);
         $usuarioData = $request->getAttribute('usuarioData');
-        $idMozo=$usuarioData->idUsuario;
+        $idMozo=$usuarioData->id;
         $areaUsuario=$usuarioData->area;
 
 
@@ -66,6 +67,7 @@ class PedidosController implements IApiUsable
                 ControladorArchivos::GuardarArchivo($_FILES['archivo']['tmp_name'],$ruta_destino);
                 $pedido->rutaImagen=$ruta_destino;   
                 $pedido->ModificarPedido();
+                $payload = json_encode(["mensaje" => "Imagen subida correctamente"]);
             }
             else 
             {
@@ -135,7 +137,7 @@ class PedidosController implements IApiUsable
                 break;
             case 'preparacion':
                 $filtro = [
-                    'pedidosproductos.idEmpleado' => $usuarioData->idUsuario,
+                    'pedidosproductos.idEmpleado' => $usuarioData->id,
                     'pedidosproductos.estado' => $estado,
                 ];
                 break;
@@ -166,7 +168,7 @@ class PedidosController implements IApiUsable
         $params = $request->getParsedBody();
         $idPedidoProducto = $params['idPedidoProducto'];
         $usuarioData = $request->getAttribute('usuarioData'); 
-        $tiempoEstimado=$params['tiempoEstimado'];
+        
     
         $pedidoProducto = PedidoProducto::ObtenerPedidoProducto($idPedidoProducto);
         $datosProducto=$pedidoProducto->ObtenerDatosProducto();
@@ -177,15 +179,15 @@ class PedidosController implements IApiUsable
             {
                 case 'pendiente':
 
-
                     if($usuarioData->area==$datosProducto->area)
                     {
+                        $tiempoEstimado=$params['tiempoEstimado'];
                         if(Validador::ValidarTIME($tiempoEstimado))
                         {
                             $pedidoProducto->tiempoEstimado=$tiempoEstimado;
-                            $pedidoProducto->idEmpleado=$usuarioData->idUsuario;
+                            $pedidoProducto->idEmpleado=$usuarioData->id;
                             $pedidoProducto->estado="preparacion";
-                            $pedidoProducto->ModificarPedido();
+                            $pedidoProducto->ModificarPedidoProducto();
                             $payload = json_encode(["mensaje" => "Empleado asignado exitosamente"]);
                         }
                         else
@@ -200,7 +202,7 @@ class PedidosController implements IApiUsable
                     }
                     break;
                 case 'preparacion':
-                    if($usuarioData->idUsuario==$datosProducto->idEmpleado)
+                    if($usuarioData->id==$datosProducto->idEmpleado)
                     {
                         $pedidoProducto->estado = 'listo';
                         $pedidoProducto->ModificarPedidoProducto(); 
@@ -213,7 +215,7 @@ class PedidosController implements IApiUsable
                     }
                     break;
                 case 'listo':
-                    if($usuarioData->idUsuario==$datosProducto->idMozo)
+                    if($usuarioData->id==$datosProducto->idMozo)
                     {
     
                         $pedidoProducto->estado = 'entregado';
@@ -245,7 +247,8 @@ class PedidosController implements IApiUsable
 
     public function TraerUno($request, $response, $args)
     {
-        $idPedido = $args['idPedido'];
+        $idPedido = $args['pedido'];
+
         $pedidoProductosPorPedido=PedidoProducto::ObtenerPorPedido($idPedido);
     
         if (!$pedidoProductosPorPedido->isEmpty()) 
@@ -292,10 +295,11 @@ class PedidosController implements IApiUsable
     
     public function CobrarCuenta($request, $response, $args)
     {
-        $idPedido = $args['idPedido'];
-        $pedido = Pedido::find($idPedido);
+        $params = $request->getParsedBody();
+        $idPedido = $params['idPedido'];
+        $pedido = Pedido::ObtenerPedido($idPedido);
         $usuarioData = $request->getAttribute('usuarioData');
-        $idMozo=$usuarioData->idUsuario;
+        $idMozo=$usuarioData->id;
         
         if ($pedido) 
         {

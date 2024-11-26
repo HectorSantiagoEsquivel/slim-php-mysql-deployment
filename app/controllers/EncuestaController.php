@@ -1,7 +1,7 @@
 <?php
 
 require_once './utils/Validador.php';
-use app\models\Encuesta;
+use App\Models\Encuesta;
 
 class EncuestaController 
 {
@@ -10,16 +10,16 @@ class EncuestaController
     {
         $params = $request->getParsedBody();
 
-        $pedidoId = $params['pedidoId'];
+        $idPedido = $params['idPedido'];
         $puntaje = $params['puntaje'];
         $reseña = $params['reseña'];
         
-        if($puntaje>0 && $puntaje<11)
+        if($puntaje>=1 && $puntaje<=10)
         {
 
             if(strlen($reseña) <= 200)
             {
-                Encuesta::CrearEncuesta($pedidoId,$puntaje,$reseña);
+                Encuesta::CrearEncuesta($idPedido,$puntaje,$reseña);
                 $payload = json_encode(["mensaje" => "Encuesta guardada con éxito"]);
             }
             else

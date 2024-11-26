@@ -3,7 +3,7 @@
 require_once './interfaces/IApiUsable.php';
 require_once './utils/Validador.php';
 
-use app\models\Producto;
+use App\Models\Producto;
 
 class ProductoController implements IApiUsable
 {

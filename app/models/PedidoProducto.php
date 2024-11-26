@@ -28,7 +28,12 @@ class PedidoProducto extends Model
 
     public static function ObtenerPorPedido($idPedido)
     {
-        return PedidoProducto::where('idPedido', $idPedido)->get();
+        $filtro = [
+            'pedidosproductos.idPedido' => $idPedido,
+            ];
+    
+            $datosProducto = self::FiltrarDatos($filtro);
+            return $datosProducto;
     }
 
     public static function ObtenerPedidoProducto($id)
@@ -61,6 +66,9 @@ class PedidoProducto extends Model
                 'pedidosproductos.cantidad as cantidad',
                 'pedidosproductos.estado as estado',
                 'pedidosproductos.idEmpleado as idEmpleado',
+                'pedidosproductos.tiempoEstimado as tiempoEstimado',
+                'pedidosproductos.tiempoInicio as tiempoInicio',
+                'pedidosproductos.tiempoTotal as tiempoTotal',
                 'pedidos.idMesa as idMesa',
                 'pedidos.idMozo as idMozo',
                 'pedidos.estado as estadoPedido'
@@ -88,23 +96,23 @@ class PedidoProducto extends Model
     public function CargarTiempoTotal()
     {
         $this->update([
-            'tiempoEstimado'=>Carbon::now(),
+            'tiempoTotal'=>Carbon::now(),
         ]);
     }
 
-    public function calcularTiempoTranscurrido()
+    public static function calcularTiempoTranscurrido($tiempoInicio,$tiempoTotal=null)
     {
-        $tiempoInicio = new \DateTime($this->tiempoInicio);
+        $tiempoInicioParseado = new \DateTime($tiempoInicio);
 
-        if($this->tiempoTotal)
+        if($tiempoTotal)
         {
-            $tiempoTotal = new \DateTime($this->tiempoTotal);
-            $intervalo = $tiempoInicio->diff($tiempoTotal);
+            $tiempoTotalParseado = new \DateTime($tiempoTotal);
+            $intervalo = $tiempoInicioParseado->diff($tiempoTotalParseado);
         }
         else
         {
             $ahora = new \DateTime();
-            $intervalo = $tiempoInicio->diff($ahora);
+            $intervalo = $tiempoInicioParseado->diff($ahora);
         }
         return $intervalo->format('%h : %i ');
     }
@@ -116,7 +124,7 @@ class PedidoProducto extends Model
             'cantidad' => $this->cantidad,
             'estado' => $this->estado,
             'tiempoEstimado' => $this->tiempoEstimado,
-            'demora' => $this->calcularTiempoTranscurrido(),
+            'demora' => self::calcularTiempoTranscurrido($this->tiempoInicio,$this->tiempoTotal),
         ];
     }
 

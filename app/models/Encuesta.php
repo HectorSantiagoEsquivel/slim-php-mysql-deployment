@@ -10,15 +10,15 @@ class Encuesta extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'pedidoId',
+        'idPedido',
         'puntaje',
         'reseña',
     ];
 
-    public static function CrearEncuesta($pedidoId,$puntaje,$reseña)
+    public static function CrearEncuesta($idPedido,$puntaje,$reseña)
     {
         return Encuesta::create([
-            'pedidoId' => $pedidoId,
+            'idPedido' => $idPedido,
             'puntaje' => $puntaje,
             'reseña' => $reseña
         ]);
