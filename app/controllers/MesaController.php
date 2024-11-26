@@ -60,11 +60,11 @@ class MesaController implements IApiUsable
         if ($mesa)
         {
           $mesa->BorrarMesa();
-          $payload = json_encode(["mensaje" => "Usuario desactivado con éxito"]);
+          $payload = json_encode(["mensaje" => "Mesa desactivado con éxito"]);
         }
         else
         {
-          $payload = json_encode(["mensaje" => "Usuario no encontrado"]);
+          $payload = json_encode(["mensaje" => "Mesa no encontrado"]);
         }
 
         $response->getBody()->write($payload);
@@ -84,7 +84,7 @@ class MesaController implements IApiUsable
       }
       else
       {
-        $payload = json_encode(["mensaje" => "Usuario no encontrado"]);
+        $payload = json_encode(["mensaje" => "Mesa no encontrado"]);
       }
 
       $response->getBody()->write($payload);
@@ -101,27 +101,63 @@ class MesaController implements IApiUsable
           ->withHeader('Content-Type', 'application/json');
     }
 
-    public function ObtenerMesaMasUsada($request, $response, $args)
-  {
-      
-    $mesaMasUsada = Mesa::TraerMasUsada(); 
-
-
-    if ($mesaMasUsada) 
+    public function CerrarMesa($request, $response, $args)
     {
-      $payload = json_encode([
-          "mesa" => $mesaMasUsada,
-          "cantidadPedidos" => $mesaMasUsada->pedidos_count
-      ]);
-    } 
-    else 
-    {
-      $payload = json_encode(["mensaje" => "No se encontraron mesas con pedidos"]);
+        $parametros = $request->getParsedBody();
+        $id = $parametros['id'];
+        $mesa = Mesa::obtenerMesa($id);
+        
+        if ($mesa) {
+            $pedidoActivo = Mesa::FiltrarDatos([
+                'pedidos.idMesa' => $id,
+                'pedidos.estado' => 'activo'
+            ])->first();
+    
+            if (!$pedidoActivo) 
+            {
+              $mesa->estado='cerrada';
+              $mesa->modificarMesa();
+              $payload = json_encode(["mensaje" => "Mesa cerrada."]);
+
+            }
+            else
+            {
+              $payload = json_encode(["mensaje" => "Esta mesa tiene un pedido activo y no puede cerrarse."]);
+            }
+        } 
+        else 
+        {
+
+          $payload = json_encode(["mensaje" => "Mesa no encontrada"]);
+        }
+    
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
     }
+    
 
-    $response->getBody()->write($payload);
-    return $response->withHeader('Content-Type', 'application/json');
-  }
+
+    public function ObtenerMesaMasUsada($request, $response, $args)
+    {
+        
+      $mesaMasUsada = Mesa::TraerMasUsada(); 
+
+
+      if ($mesaMasUsada) 
+      {
+        $payload = json_encode([
+            "mesa" => $mesaMasUsada,
+            "cantidadPedidos" => $mesaMasUsada->pedidos_count
+        ]);
+      } 
+      else 
+      {
+        $payload = json_encode(["mensaje" => "No se encontraron mesas con pedidos"]);
+      }
+
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
+    }
 
     
 

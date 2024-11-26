@@ -55,5 +55,31 @@ class Mesa extends Model
         ->first(); 
     }
 
+    
+    public static function FiltrarDatos($filtro = [])
+    {
+
+        $datos = Mesa::join('pedidos', 'mesas.id', '=', 'pedidos.idMesa')
+            ->select(
+                'mesas.id as idMesa',
+                'mesas.estado as estadoMesa',
+                'pedidos.id as idPedido',
+                'pedidos.estado as estadoPedido',
+                'pedidos.idMozo',
+                'pedidos.idMesa',
+                'pedidos.rutaImagen'
+            );
+    
+        foreach ($filtro as $columna => $valor) 
+        {
+            if ($columna !== null) 
+            {
+                $datos->where($columna, $valor);
+            }
+        }
+    
+        return $datos->get();
+    }
+
 
 }

@@ -8,7 +8,7 @@ use App\Models\Pedido;
 use App\Models\PedidoProducto;
 use App\Models\Mesa;
 use App\Models\Producto;
-use App\Models\Usuario;
+
 
 
 class PedidosController implements IApiUsable
@@ -24,11 +24,14 @@ class PedidosController implements IApiUsable
         $areaUsuario=$usuarioData->area;
 
 
-        if($mesa)
+        if($mesa->estado=='disponible')
         {
             if($areaUsuario=='mozo')
             {
+                $mesa->estado='ocupada';
+                $mesa->ModificarMesa();
                 $pedidoId = Pedido::CrearPedido($idMesa,$idMozo);
+
                 $payload = json_encode(["mensaje" => "Pedido creado con éxito", "idPedido" => $pedidoId]);
             }
             else
@@ -39,7 +42,7 @@ class PedidosController implements IApiUsable
         }
         else
         {
-            $payload = json_encode(["mensaje" => "Mesa no encontrada"]);
+            $payload = json_encode(["mensaje" => "Mesa no disponible"]);
         }
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
@@ -307,13 +310,36 @@ class PedidosController implements IApiUsable
             {
                 if($pedido->idMozo==$idMozo)
                 {
-                    $total = PedidoProducto::calcularTotal($pedido->id);
-                    $pedido->estado='cerrado';
-                    $pedido->ModificarPedido();
-                    $payload = json_encode([
-                        'total' => $total,
-                        'mensaje' => 'La cuenta ha sido cobrada y el pedido está cerrado.'
+                                      
+                    $productosPendientes = PedidoProducto::FiltrarDatos([
+                        'pedidosproductos.idPedido' => $pedido->id,
+                        'pedidosproductos.estado' => 'pendiente'
                     ]);
+                    $productosEnPreparacion = PedidoProducto::FiltrarDatos([
+                        'pedidosproductos.idPedido' => $pedido->id,
+                        'pedidosproductos.estado' => 'preparacion'
+                    ]);
+                    $productosListos = PedidoProducto::FiltrarDatos([
+                        'pedidosproductos.idPedido' => $pedido->id,
+                        'pedidosproductos.estado' => 'listo'
+                    ]);                    
+                    $productosCombinados = $productosPendientes->merge($productosEnPreparacion)->merge($productosListos);
+
+                    if($productosCombinados->isEmpty())
+                    {
+                        $total = PedidoProducto::calcularTotal($pedido->id);
+                        $pedido->estado='cerrado';
+                        $pedido->ModificarPedido();
+                        $payload = json_encode([
+                            'total' => $total,
+                            'mensaje' => 'La cuenta ha sido cobrada y el pedido está cerrado.'
+                        ]);
+                    }
+                    else
+                    {
+                        $payload = json_encode(["mensaje" => "Esta cuenta todavia tiene pedidos en proceso"]);
+                    }
+
                 }
                 else
                 {

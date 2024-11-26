@@ -146,7 +146,11 @@ class PedidoProducto extends Model
 
     public static function calcularTotal($idPedido)
     {
-        $productos = PedidoProducto::FiltrarDatos(['pedidosproductos.idPedido' => $idPedido]);
+        $filtro = [
+            'pedidosproductos.idPedido' => $idPedido,
+            'pedidosproductos.estado' => 'entregado',
+        ];
+        $productos = PedidoProducto::FiltrarDatos($filtro);
         $total = 0;
 
         foreach ($productos as $producto) 
@@ -156,5 +160,7 @@ class PedidoProducto extends Model
 
         return $total;
     }
+
+
 
 }

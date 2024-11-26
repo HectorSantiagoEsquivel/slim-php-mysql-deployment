@@ -74,7 +74,9 @@ $app->group('/mesas', function (RouteCollectorProxy $group)
   $group->get('/{mesa}', \MesaController::class . ':TraerUno');
   $group->post('[/]', \MesaController::class . ':CargarUno');
   $group->post('/modificar', \MesaController::class . ':ModificarUno');
+  $group->post('/cerrar', \MesaController::class . ':CerrarMesa');
   $group->post('/borrar', \MesaController::class . ':BorrarUno');
+
   
 })->add(new MiddlewareUsuarios(["socio"]));
 
