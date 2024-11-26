@@ -1,21 +1,23 @@
 <?php
-require_once './models/Mesa.php';
+
 require_once './interfaces/IApiUsable.php';
+require_once './utils/Validador.php';
+
+use app\models\Mesa;
 
 class MesaController extends Mesa implements IApiUsable
 {
+    static $estadosValidos = ["disponible", "ocupada", "cerrada"];
     public function CargarUno($request, $response, $args)
     {
-
-        $mesa = new Mesa();
-        $mesa->crearMesa();
-
+        Mesa::crearMesa();
         $payload = json_encode(array("mensaje" => "Mesa creada con exito"));
-
         $response->getBody()->write($payload);
         return $response
           ->withHeader('Content-Type', 'application/json');
     }
+
+    
 
     public function ModificarUno($request, $response, $args)
     {
@@ -23,17 +25,26 @@ class MesaController extends Mesa implements IApiUsable
 
         $id = $parametros['id'];
         $estado = $parametros['estado'];
-        $idCliente =$parametros['idClienteActual'];
+        
 
-        $mesa = new Mesa();
-
-        $mesa->id=$id;
-        $mesa->estado=$estado;
-        $mesa->idClienteActual=$idCliente;
-
-        $mesa->modificarMesa();
-
-        $payload = json_encode(array("mensaje" => "Mesa modificado con exito"));
+        if (Validador::ValidarPalabra($estado, self::$estadosValidos)) 
+        {
+          $mesa=Mesa::obtenerMesa($id);
+          if($mesa)
+          {
+            $mesa->estado=$estado;
+            $mesa->modificarMesa();
+            $payload = json_encode(["mensaje" => "Mesa modificada con éxito"]);
+          }
+          else
+          {
+            $payload = json_encode(["mensaje" => "Mesa no encontrada"]);
+          }
+        }
+        else
+        {
+          $payload = json_encode(["mensaje" => "Estado no válido"]);
+        }
 
         $response->getBody()->write($payload);
         return $response
@@ -45,9 +56,16 @@ class MesaController extends Mesa implements IApiUsable
         $parametros = $request->getParsedBody();
 
         $id = $parametros['id'];
-        Mesa::borrarMesa($id);
-
-        $payload = json_encode(array("mensaje" => "Mesa borrado con exito"));
+        $mesa=Mesa::obtenerMesa($id);
+        if ($mesa)
+        {
+          $mesa->BorrarMesa();
+          $payload = json_encode(["mensaje" => "Usuario desactivado con éxito"]);
+        }
+        else
+        {
+          $payload = json_encode(["mensaje" => "Usuario no encontrado"]);
+        }
 
         $response->getBody()->write($payload);
         return $response
@@ -57,13 +75,20 @@ class MesaController extends Mesa implements IApiUsable
     public function TraerUno($request, $response, $args)
     {
         
-        $id = $args['mesa'];
-        $mesa = Mesa::obtenerMesa($id);
-        $payload = json_encode($mesa);
+      $id = $args['mesa'];
+      $mesa = Mesa::obtenerMesa($id);
 
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+      if ($mesa) 
+      {
+        $payload = json_encode($mesa);
+      }
+      else
+      {
+        $payload = json_encode(["mensaje" => "Usuario no encontrado"]);
+      }
+
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function TraerTodos($request, $response, $args)
@@ -75,6 +100,29 @@ class MesaController extends Mesa implements IApiUsable
         return $response
           ->withHeader('Content-Type', 'application/json');
     }
+
+    public function ObtenerMesaMasUsada($request, $response, $args)
+  {
+      
+    $mesaMasUsada = Mesa::TraerMasUsada(); 
+
+
+    if ($mesaMasUsada) 
+    {
+      $payload = json_encode([
+          "mesa" => $mesaMasUsada,
+          "cantidadPedidos" => $mesaMasUsada->pedidos_count
+      ]);
+    } 
+    else 
+    {
+      $payload = json_encode(["mensaje" => "No se encontraron mesas con pedidos"]);
+    }
+
+    $response->getBody()->write($payload);
+    return $response->withHeader('Content-Type', 'application/json');
+  }
+
     
 
 }

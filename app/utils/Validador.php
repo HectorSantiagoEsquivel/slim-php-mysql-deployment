@@ -49,6 +49,15 @@ class Validador
         }
         return $exito;
     }
+
+    public static function ValidarTIME($timeAValidar)
+    {
+        if (preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/', $timeAValidar))
+        {
+            return true;
+        }
+        return false;
+    }
 }
 
 

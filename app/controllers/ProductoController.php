@@ -1,105 +1,117 @@
 <?php
-require_once './models/Producto.php';
-require_once './interfaces/IApiUsable.php';
 
-class ProductoController extends Producto implements IApiUsable
+require_once './interfaces/IApiUsable.php';
+require_once './utils/Validador.php';
+
+use app\models\Producto;
+
+class ProductoController implements IApiUsable
 {
     static $areasValidas = array("cerveceria","cocina","candy","barra");
     public function CargarUno($request, $response, $args)
     {
-        $parametros = $request->getParsedBody();
 
-        $nombre = $parametros['nombre'];
-        $precio = $parametros['precio'];
-        $area = $parametros['area'];
+      $parametros = $request->getParsedBody();
 
-        if(Validador::ValidarPalabra($area,self::$areasValidas))
-        {
-          $producto = new Producto();
-          $producto->nombre = $nombre;
-          $producto->precio = $precio;
-          $producto->area = $area;
-          $producto->crearProducto();
-  
-          $payload = json_encode(array("mensaje" => "Producto creado con exito"));
-        }
-        else
-        {
-          $payload = json_encode(array("mensaje" => "Producto no valido"));
-        }
+      $nombre = $parametros['nombre'];
+      $precio = $parametros['precio'];
+      $area = $parametros['area'];
 
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+      if (Validador::ValidarPalabra($area, self::$areasValidas)) 
+      {
+        $productoID= Producto::crearProducto($nombre, $precio, $area);
+
+        $payload = json_encode(["mensaje" => "Producto creado con éxito", "id" => $productoID]);
+      }
+      else
+      {
+        $payload = json_encode(["mensaje" => "Área no válida"]);
+      }
+
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
     }
 
-        public function ModificarUno($request, $response, $args)
+    public function ModificarUno($request, $response, $args)
     {
-        $parametros = $request->getParsedBody();
+      $parametros = $request->getParsedBody();
 
-        $nombre = $parametros['nombre'];
-        $precio = $parametros['precio'];
-        $area = $parametros['area'];
-        $disponible= $parametros['disponible'];
-        $id = $parametros['id'];
+      $nombre = $parametros['nombre'];
+      $precio = $parametros['precio'];
+      $area = $parametros['area'];
+      $id = $parametros['id'];
 
-        if(Validador::ValidarPalabra($area,self::$areasValidas))
+      if (Validador::ValidarPalabra($area, self::$areasValidas)) 
+      {
+        $producto = Producto::ObtenerProducto($id);
+        if ($producto) 
         {
-          $producto = new Producto();
-          $producto->nombre = $nombre;
-          $producto->precio = $precio;
-          $producto->area = $area;
-          $producto->id = $id;
-          $producto->disponible=$disponible;
-  
-          $producto->modificarProducto();
-  
-          $payload = json_encode(array("mensaje" => "Producto modificado con exito"));
-        }
-        else
+          $producto->nombre=$nombre;
+          $producto->precio=$precio;
+          $producto->area=$area;
+          $producto->ModificarProducto();
+          $payload = json_encode(["mensaje" => "Producto modificado con éxito"]);
+        } 
+        else 
         {
-          $payload = json_encode(array("mensaje" => "Modificacion no valida"));
+          $payload = json_encode(["mensaje" => "Producto no encontrado"]);
         }
+      }
+      else 
+      {
+        $payload = json_encode(["mensaje" => "Área no válida"]);
+      }
 
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
     }
 
-    public function BorrarUno($request, $response, $args)
+    public function BorrarUno($request,$response,$args)
     {
-        $parametros = $request->getParsedBody();
+      $parametros = $request->getParsedBody();
 
-        $id = $parametros['id'];
-        Producto::borrarProducto($id);
+      $id = $parametros['id'];
+      $producto = Producto::ObtenerProducto($id);
 
-        $payload = json_encode(array("mensaje" => "Producto borrado con exito"));
+      if ($producto)
+      {
+        $producto->BorrarUno();
+        $payload = json_encode(["mensaje" => "Producto desactivado con éxito"]);
+      }
+      else
+      {
+        $payload = json_encode(["mensaje" => "Producto no encontrado"]);
+      }
 
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
     }
+
 
     public function TraerUno($request, $response, $args)
     {
+      $id = $args['producto'];
+      $producto = Producto::ObtenerProducto($id);
 
-        $producto = $args['producto'];
-        $id = Producto::obtenerProducto($producto);
-        $payload = json_encode($id);
-
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+      if ($producto) 
+      {
+        $payload = json_encode($producto);
+      }
+      else
+      {
+        $payload = json_encode(["mensaje" => "Producto no encontrado"]);
+      }
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function TraerTodos($request, $response, $args)
     {
-        $lista = Producto::obtenerTodos();
-        $payload = json_encode(array("listaProducto" => $lista));
+      $productos = Producto::ObtenerTodos();
+      $payload = json_encode(["listaProducto" => $productos]);
 
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
     }
     
 

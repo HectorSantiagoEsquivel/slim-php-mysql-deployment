@@ -45,7 +45,7 @@ $app->group('/usuarios', function (RouteCollectorProxy $group) {
     $group->post('[/]', \UsuarioController::class . ':CargarUno');
     $group->post('/modificar', \UsuarioController::class . ':ModificarUno');
     $group->post('/borrar', \UsuarioController::class . ':BorrarUno');
-  })->add(MiddlewareUsuarios::class);
+  })->add(new MiddlewareUsuarios(["socio"]));
 
 $app->group('/mesas', function (RouteCollectorProxy $group) 
 {
@@ -55,7 +55,7 @@ $app->group('/mesas', function (RouteCollectorProxy $group)
   $group->post('/modificar', \MesaController::class . ':ModificarUno');
   $group->post('/borrar', \MesaController::class . ':BorrarUno');
   
-})->add(MiddlewareUsuarios::class);
+})->add(new MiddlewareUsuarios(["socio"]));
 
 $app->group('/productos', function (RouteCollectorProxy $group) 
 {
@@ -65,7 +65,7 @@ $app->group('/productos', function (RouteCollectorProxy $group)
   $group->post('/modificar', \ProductoController::class . ':ModificarUno');
   $group->post('/borrar', \ProductoController::class . ':BorrarUno');
   
-})->add(MiddlewareUsuarios::class);
+})->add(new MiddlewareUsuarios(["socio"]));
 
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidosController::class . ':TraerTodos');

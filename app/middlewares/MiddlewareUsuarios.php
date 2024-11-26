@@ -10,7 +10,13 @@ require_once './utils/Validador.php';
 
 class MiddlewareUsuarios
 {
-    static $areasValidas=array("socio");
+    private $areasValidas;
+
+    public function __construct(array $areasValidas)
+    {
+        $this->areasValidas = $areasValidas;
+    }
+
     public function __invoke(Request $request, RequestHandler $handler): Response
     {
        
@@ -23,9 +29,9 @@ class MiddlewareUsuarios
             AutentificadorJWT::VerificarToken($token);          
             $usuarioData = AutentificadorJWT::ObtenerData($token);
             
-            if (Validador::ValidarPalabra($usuarioData->area,self::$areasValidas)) 
+            if (Validador::ValidarPalabra($usuarioData->area,$this->areasValidas)) 
             {
-                
+                $request = $request->withAttribute('usuarioData', $usuarioData);
                 $response = $handler->handle($request);
             } 
             else 

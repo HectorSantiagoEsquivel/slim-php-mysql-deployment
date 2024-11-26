@@ -1,32 +1,335 @@
 <?php
 require_once './models/Pedido.php';
 require_once './interfaces/IApiUsable.php';
+require_once './utils/Validador.php';
 
-class PedidosController extends Pedido implements IApiUsable
+use app\models\Pedido;
+use app\models\PedidoProducto;
+use app\models\Mesa;
+use app\models\Producto;
+use app\models\Usuario;
+
+
+class PedidosController implements IApiUsable
 {
-    
+
     public function CargarUno($request, $response, $args)
     {
-        $parametros = $request->getParsedBody();
+        $params = $request->getParsedBody();
+        $idMesa = $params['idMesa'];
+        $mesa=Mesa::obtenerMesa($idMesa);
+        $usuarioData = $request->getAttribute('usuarioData');
+        $idMozo=$usuarioData->idUsuario;
+        $areaUsuario=$usuarioData->area;
 
-        $idMesa = $parametros['idMesa'];
-        $idProducto = $parametros['idProducto'];
-        $cantidad = $parametros['cantidad'];
-        $estado = $parametros['estado'];
-        $tiempoEstimado = $parametros['tiempoEstimado'];
 
-        $pedido = new Pedido();
-        $pedido->idMesa = $idMesa;
+        if($mesa)
+        {
+            if($areaUsuario=='mozo')
+            {
+                $pedidoId = Pedido::CrearPedido($idMesa,$idMozo);
+                $payload = json_encode(["mensaje" => "Pedido creado con éxito", "idPedido" => $pedidoId]);
+            }
+            else
+            {
+                $payload = json_encode(["mensaje" => "Usuario no encontrado o responsabilidad incorrecta"]);
+            }
 
-        $idPedido= $pedido->crearPedido();
+        }
+        else
+        {
+            $payload = json_encode(["mensaje" => "Mesa no encontrada"]);
+        }
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    }
 
-        Pedido::agregarProductoAlPedido($idPedido,$idProducto,$cantidad,$estado,$tiempoEstimado);
 
-        $payload = json_encode(array("mensaje" => "Pedido creado con exito"));
+    public function CargarImagen($request,$response,$args)
+    {
+        $carpeta_archivos = 'archivos/ImagenesDeMesas/';
+        $tiposArchivoValidos=array ("png","jpg","jpeg");
+        $tipo_archivo = $_FILES['archivo']['type'];
+        $tamano_archivo = $_FILES['archivo']['size'];
+
+        $params = $request->getParsedBody();
+        $idPedido=$params['idPedido'];
+        $pedido=Pedido::ObtenerPedido($idPedido);
+
+        if($pedido)
+        {
+
+            if (Validador::ValidarImagen($tipo_archivo, $tiposArchivoValidos, $tamano_archivo, 2048000)) 
+            {
+                $nombre_archivo=$pedido->id;
+                $ruta_destino = $carpeta_archivos . $nombre_archivo .'.'. substr($tipo_archivo, strpos($tipo_archivo, "/") + 1);
+                ControladorArchivos::GuardarArchivo($_FILES['archivo']['tmp_name'],$ruta_destino);
+                $pedido->rutaImagen=$ruta_destino;   
+                $pedido->ModificarPedido();
+            }
+            else 
+            {
+                $payload = json_encode(["mensaje" => "La extensión o el tamaño de los archivos no es correcta."]);
+            }
+        }
+        else
+        {
+            $payload = json_encode(["mensaje" => "Pedido no encontrado"]);
+        }
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+
+
+    }
+
+    public function AgregarProducto($request,$response,$args)
+    {
+        $params = $request->getParsedBody();
+        $idPedido=$params['idPedido'];
+        $idProducto=$params['idProducto'];
+        $cantidad=$params['cantidad'];
+        $pedido=Pedido::ObtenerPedido($idPedido);
+        
+        if($pedido)
+        {
+            $producto=Producto::obtenerProducto($idProducto);
+            
+            if($producto && $cantidad>0)
+            {
+                if($producto->disponible==1)
+                {
+                    PedidoProducto::AgregarProducto($idPedido,$idProducto,$cantidad);
+                    $payload = json_encode(["mensaje" => "Producto agregado exitosamente"]);
+                }
+                else 
+                {
+                    $payload = json_encode(["mensaje" => "Producto no disponible"]); 
+                }
+
+            }
+            else
+            {
+                $payload = json_encode(["mensaje" => "Producto no encontrado o cantidad no suficiente"]);
+            }
+        }
+        else
+        {
+            $payload = json_encode(["mensaje" => "Pedido no encontrado"]);
+        }
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function ListarPedidoProductosPorEstado($request, $response, $args)
+    {
+        $usuarioData = $request->getAttribute('usuarioData');
+        $estado = $args['estado'];  
+        $filtro=null;
+
+        switch ($estado) 
+        {
+            case 'pendiente':
+                $filtro = [
+                    'productos.area' => $usuarioData->area,
+                    'pedidosproductos.estado' => $estado,];
+                break;
+            case 'preparacion':
+                $filtro = [
+                    'pedidosproductos.idEmpleado' => $usuarioData->idUsuario,
+                    'pedidosproductos.estado' => $estado,
+                ];
+                break;
+            case 'listo':
+                $filtro = [
+
+                    'pedidosproductos.estado' => $estado,
+                ];
+                break;
+            default:
+                $payload = json_encode(["mensaje" => "Estado no válido"]);
+                break;
+        }
+
+        if($filtro)
+        {
+            $productos = PedidoProducto::FiltrarDatos($filtro);
+            $payload = json_encode(["productos" => $productos]);
+        }
+
 
         $response->getBody()->write($payload);
-        return $response
-            ->withHeader('Content-Type', 'application/json');
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function cambiarEstadoPedidoProducto($request, $response, $args)
+    {
+        $params = $request->getParsedBody();
+        $idPedidoProducto = $params['idPedidoProducto'];
+        $usuarioData = $request->getAttribute('usuarioData'); 
+        $tiempoEstimado=$params['tiempoEstimado'];
+    
+        $pedidoProducto = PedidoProducto::ObtenerPedidoProducto($idPedidoProducto);
+        $datosProducto=$pedidoProducto->ObtenerDatosProducto();
+
+        if ($pedidoProducto) 
+        {
+            switch ($pedidoProducto->estado) 
+            {
+                case 'pendiente':
+
+
+                    if($usuarioData->area==$datosProducto->area)
+                    {
+                        if(Validador::ValidarTIME($tiempoEstimado))
+                        {
+                            $pedidoProducto->tiempoEstimado=$tiempoEstimado;
+                            $pedidoProducto->idEmpleado=$usuarioData->idUsuario;
+                            $pedidoProducto->estado="preparacion";
+                            $pedidoProducto->ModificarPedido();
+                            $payload = json_encode(["mensaje" => "Empleado asignado exitosamente"]);
+                        }
+                        else
+                        {
+                            $payload = json_encode(["mensaje" => "Tiempo Estimado no valido"]);
+                        }
+
+                    }
+                    else
+                    {
+                        $payload = json_encode(["mensaje" => "Responsabilidad incorrecta"]);
+                    }
+                    break;
+                case 'preparacion':
+                    if($usuarioData->idUsuario==$datosProducto->idEmpleado)
+                    {
+                        $pedidoProducto->estado = 'listo';
+                        $pedidoProducto->ModificarPedidoProducto(); 
+                        $payload = json_encode(["mensaje" => "Producto marcado como listo para servir"]);
+    
+                    }
+                    else
+                    {
+                        $payload = json_encode(["mensaje" => "Producto no asignado a este usuario"]);
+                    }
+                    break;
+                case 'listo':
+                    if($usuarioData->idUsuario==$datosProducto->idMozo)
+                    {
+    
+                        $pedidoProducto->estado = 'entregado';
+                        $pedidoProducto->ModificarPedidoProducto();
+                        $pedidoProducto->CargarTiempoTotal();  
+    
+                        $payload = json_encode(["mensaje" => "Producto marcado como entregado"]);
+    
+                    }
+                    else
+                    {
+                        $payload = json_encode(["mensaje" => "Pedido no asignado a este mozo"]);
+                    }
+                    break;
+                default:
+                    $payload = json_encode(["mensaje" => "Estado no válido"]);
+                    break;
+            }
+            
+        } 
+        else 
+        {
+            $payload = json_encode(["mensaje" => "Producto no encontrado"]);
+        }
+        
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function TraerUno($request, $response, $args)
+    {
+        $idPedido = $args['idPedido'];
+        $pedidoProductosPorPedido=PedidoProducto::ObtenerPorPedido($idPedido);
+    
+        if (!$pedidoProductosPorPedido->isEmpty()) 
+        {
+            $detallePedido = PedidoProducto::FormatearDetalles($pedidoProductosPorPedido);
+            $payload = json_encode($detallePedido);
+        } 
+        else 
+        {
+            $payload = json_encode(["mensaje" => "No se encontraron productos para el pedido especificado."]);
+        }
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+
+    public function TraerTodos($request, $response, $args)
+    {
+        $pedidosActivos = Pedido::ObtenerPedidosActivos();
+        if (!$pedidosActivos->isEmpty()) 
+        {
+            $detallePedidos = [];
+
+            foreach ($pedidosActivos as $pedido) 
+            {
+
+                $pedidoProductos = PedidoProducto::ObtenerPorPedido($pedido->id);
+
+                if (!$pedidoProductos->isEmpty()) 
+                {
+                    $detallePedidos[] = PedidoProducto::FormatearDetalles($pedidoProductos);
+                }
+            }
+
+            $payload = json_encode($detallePedidos);
+        }
+        else 
+        {
+            $payload = json_encode(["mensaje" => "No hay pedidos activos en este momento."]);
+        }
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+    
+    public function CobrarCuenta($request, $response, $args)
+    {
+        $idPedido = $args['idPedido'];
+        $pedido = Pedido::find($idPedido);
+        $usuarioData = $request->getAttribute('usuarioData');
+        $idMozo=$usuarioData->idUsuario;
+        
+        if ($pedido) 
+        {
+            if ($pedido->estado == 'activo') 
+            {
+                if($pedido->idMozo==$idMozo)
+                {
+                    $total = PedidoProducto::calcularTotal($pedido->id);
+                    $pedido->estado='cerrado';
+                    $pedido->ModificarPedido();
+                    $payload = json_encode([
+                        'total' => $total,
+                        'mensaje' => 'La cuenta ha sido cobrada y el pedido está cerrado.'
+                    ]);
+                }
+                else
+                {
+                    $payload = json_encode(["mensaje" => "Pedido no asignado a este mozo"]);
+                }
+            } 
+            else 
+            {
+                $payload = json_encode(["mensaje" => "El Pedido no esta activo."]);
+            }
+        } 
+        else 
+        {
+            $payload = json_encode([
+                'mensaje' => 'Pedido no encontrado.'
+            ]);
+        }
+
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
 
@@ -56,7 +359,8 @@ class PedidosController extends Pedido implements IApiUsable
         $parametros = $request->getParsedBody();
 
         $id = $parametros['id'];
-        Pedido::borrarPedido($id);
+        $pedido=Pedido::ObtenerPedido($id);
+        $pedido->BorrarUno();
 
         $payload = json_encode(array("mensaje" => "Pedido borrado con exito"));
 
@@ -66,25 +370,4 @@ class PedidosController extends Pedido implements IApiUsable
     }
 
 
-    public function TraerUno($request, $response, $args)
-    {
-        $pedido = $args['pedido'];
-        $id = Pedido::obtenerPedido($pedido);
-        $payload = json_encode($id);
-
-        $response->getBody()->write($payload);
-        return $response
-            ->withHeader('Content-Type', 'application/json');
-    }
-
-
-    public function TraerTodos($request, $response, $args)
-    {
-        $lista = Pedido::obtenerTodos();
-        $payload = json_encode(array("listaPedido" => $lista));
-
-        $response->getBody()->write($payload);
-        return $response
-            ->withHeader('Content-Type', 'application/json');
-    }
 }

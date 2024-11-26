@@ -1,63 +1,74 @@
 <?php
 
-class Producto
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Producto extends Model
 {
-    public $id;
-    public $nombre;
-    public $precio;
-    public $area;
-    public $disponible;
 
-    public function crearProducto()
+    protected $table = 'productos';
+    protected $primaryKey = 'id';
+    protected $fillable = ['nombre', 'precio', 'area', 'disponible'];
+    public $timestamps = false;
+    protected static function booted()
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO productos (nombre, precio, area) VALUES (:nombre, :precio, :area)");
-        $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);
-        $consulta->bindValue(':area', $this->area, PDO::PARAM_STR);
-        $consulta->bindValue(':precio', $this->precio);
-        $consulta->execute();
-
-        return $objAccesoDatos->obtenerUltimoId();
+        static::addGlobalScope('disponible', function ($query) {
+            $query->where('disponible', '=', 1);
+        });
     }
 
-    public static function obtenerTodos()
+    public static function crearProducto($nombre, $precio, $area, $disponible=1)
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre, precio, area, disponible FROM productos");
-        $consulta->execute();
+        return Producto::create([
+            'nombre' => $nombre,
+            'precio' => $precio,
+            'area' => $area,
+            'disponible' => $disponible 
+        ])->id;
+    }
 
-        return $consulta->fetchAll(PDO::FETCH_CLASS, 'Producto');
+    public static function ObtenerTodos()
+    {
+        return Producto::all(); 
+    }
+
+    public static function ObtenerTodosMasNoDisponibles()
+    {
+        return self::withoutGlobalScope('disponible')->get(); 
     }
 
     public static function obtenerProducto($id)
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, nombre, precio, area, disponible FROM productos WHERE id = :id");
-        $consulta->bindValue(':id', $id, PDO::PARAM_STR);
-        $consulta->execute();
-
-        return $consulta->fetchObject('Producto');
+        return Producto::find($id);
     }
 
     public function modificarProducto()
     {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE productos SET nombre = :nombre, precio = :precio, area = :area, disponible = :disponible WHERE id = :id");
+        $this->update([
+            'nombre' => $this->nombre,
+            'precio' => $this->precio,
+            'area' => $this->area,
+        ]);
+    }
     
-        $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);
-        $consulta->bindValue(':precio', $this->precio, PDO::PARAM_STR);
-        $consulta->bindValue(':area', $this->area, PDO::PARAM_STR);
-        $consulta->bindValue(':disponible', $this->disponible, PDO::PARAM_STR);
-        $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
-        $consulta->execute();
+
+    public function borrarProducto($id)
+    {
+        $this->disponible = 0;
+        $this->save();
+
     }
 
-    public static function borrarProducto($id)
+    public function restaurarProducto($id)
     {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE productos SET disponible = :disponible WHERE id = :id");
-        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
-        $consulta->bindValue(':disponible', 0);
-        $consulta->execute();
+
+        $this->disponible = 1;
+        $this->save();
+
     }
+
+
 }

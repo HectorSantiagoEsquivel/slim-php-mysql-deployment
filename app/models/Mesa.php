@@ -1,56 +1,59 @@
 <?php
 
-class Mesa
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Mesa extends Model
 {
-    public $id;
-    public $estado;
-    public $idClienteActual;
+    protected $table = 'mesas';
+    public $timestamps = false;
 
+    
 
-    public function crearMesa()
+    protected $fillable = [
+        'estado',
+    ];
+    public static function crearMesa()
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO mesas (estado) VALUES (:estado)");
-        $consulta->bindValue(':estado', "disponible", PDO::PARAM_STR);
-        $consulta->execute();
-        return $objAccesoDatos->obtenerUltimoId();
+        return Mesa::create(['estado' => 'disponible']);
     }
 
     public static function obtenerTodos()
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, estado FROM mesas");
-        $consulta->execute();
-
-        return $consulta->fetchAll(PDO::FETCH_CLASS, 'Mesa');
+        return Mesa::all();
     }
 
     public static function obtenerMesa($mesaId)
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, estado FROM mesas WHERE id = :id");
-        $consulta->bindValue(':id', $mesaId, PDO::PARAM_STR);
-        $consulta->execute();
-
-        return $consulta->fetchObject('Mesa');
+        return Mesa::find($mesaId);
     }
 
     public function modificarMesa()
     {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE mesas SET estado = :estado, idClienteActual = :idClienteActual WHERE id = :id");
-        $consulta->bindValue(':idClienteActual', $this->idClienteActual);
-        $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
-        $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
-        $consulta->execute();
+        $this->update([
+            'estado' => $this->estado,
+        ]);
+
     }
 
-    public static function borrarMesa($id)
+    public function borrarMesa($id)
     {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE mesas SET estado = :estado WHERE id = :id");
-        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
-        $consulta->bindValue(':estado', "inhabilitada");
-        $consulta->execute();
+        $this->update(['estado' => 'inhabilitada']);
     }
+
+    public function pedidos()
+    {
+        return $this->hasMany(Pedido::class, 'idMesa'); 
+    
+    }
+
+    public static function TraerMasUsada()
+    {
+        return Mesa::withCount('pedidos')
+        ->orderByDesc('pedidos_count') 
+        ->first(); 
+    }
+
+
 }

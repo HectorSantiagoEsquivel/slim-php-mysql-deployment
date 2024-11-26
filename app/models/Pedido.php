@@ -1,70 +1,58 @@
 <?php
 
-class Pedido
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Pedido extends Model
 {
-    public $id;
-    public $idMesa;
+    use SoftDeletes;
+
+    protected $table = 'pedidos';
+    protected $primaryKey = 'id';
+    protected $fillable = ['idMesa','idMozo','estado','rutaImagen'];
+    public $timestamps = false;
 
 
-    public function crearPedido()
+    public static function CrearPedido($idMesa, $idMozo=null,$estado='activo')
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (idMesa) VALUES (:idMesa)");
-        $consulta->bindValue(':idMesa', $this->idMesa, PDO::PARAM_INT);
-        $consulta->execute();
-
-        return $objAccesoDatos->obtenerUltimoId();
+        return Pedido::create([
+            'idMesa' => $idMesa,
+            'idMozo' => $idMozo,
+            'estado' => $estado,
+        ])->id;
     }
 
-    static public function agregarProductoAlPedido($idPedido,$idProducto,$cantidad)
-    {
 
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos_productos (idPedido, idProducto, cantidad,tiempoEstimado) VALUES (:idPedido, :idProducto, :cantidad)");
-        
-        $consulta->bindValue(':idPedido', $idPedido);
-        $consulta->bindValue(':idProducto', $idProducto);
-        $consulta->bindValue(':cantidad', $cantidad);
-        $consulta->execute();
+    public static function ObtenerTodos()
+    {
+        return Pedido::all();
     }
 
-    public static function obtenerTodos()
+    public static function ObtenerPedido($id)
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, idMesa FROM pedidos");
-        $consulta->execute();
-
-        return $consulta->fetchAll(PDO::FETCH_CLASS, 'Pedido');
+        return Pedido::find($id);
     }
 
-    
-    public static function obtenerPedido($id)
+    public static function ObtenerPedidosActivos()
     {
-        $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, idMesa FROM pedidos WHERE id = :id");
-        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
-        $consulta->execute();
-
-        return $consulta->fetchObject('Pedido');
+        return Pedido::where('estado', '=', 'activo')
+            ->get();
     }
 
-   
-    public function modificarPedido()
-    {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE pedidos SET idMesa = :idMesa WHERE id = :id");
 
-        $consulta->bindValue(':idMesa', $this->idMesa, PDO::PARAM_INT);
-        $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
-        $consulta->execute();
+    public function ModificarPedido()
+    {
+        $this->update([
+            'idMozo'=> $this->idMozo,
+            'idMesa'=>$this->idMesa,
+            'estado'=>$this->estado,
+            'rutaImagen'=>$this->rutaImagen,
+        ]);
     }
 
-    public static function borrarPedido($id)
+    public function BorrarPedido()
     {
-        $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("UPDATE pedidos SET estado = :estado WHERE id = :id");
-        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
-        $consulta->bindValue(':estado', "cancelado", PDO::PARAM_STR);
-        $consulta->execute();
+        $this->delete();
     }
 }
