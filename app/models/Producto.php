@@ -70,5 +70,76 @@ class Producto extends Model
 
     }
 
+    public static function GenerarCSV()
+    {
+       
+        $productos = Producto::all();
+    
+        
+        
+        $datosCSV = "id,nombre,precio,area,disponible\n";
+    
+        
+        foreach ($productos as $producto) {
+            $datosCSV .= "{$producto->id},{$producto->nombre},{$producto->precio},{$producto->area},{$producto->disponible}\n";
+        }
+    
+        return $datosCSV;
+    
+    }
+
+    public static function processCSVFile(string $csvPath): bool
+    {
+        $productos = [];
+    
+        
+        if (($fileHandle = fopen($csvPath, 'r')) === false) 
+        {
+            return false;
+        }
+    
+        while (($line = fgets($fileHandle)) !== false) 
+        {
+            $lineElements = explode(',', $line);
+    
+            
+            if (count($lineElements) < 4) 
+            {
+                continue;
+            }
+    
+            $productos[] = [
+                'id' => trim($lineElements[0]),
+                'nombre' => trim($lineElements[1]),
+                'precio' => floatval(trim($lineElements[2])),
+                'stock' => intval(trim($lineElements[3]))
+            ];
+        }
+    
+        fclose($fileHandle); 
+    
+        
+        try 
+        {
+            foreach ($productos as $producto) 
+            {
+                self::updateOrCreate(
+                    ['id' => $producto['id']],
+                    [
+                        'nombre' => $producto['nombre'],
+                        'precio' => $producto['precio'],
+                        'stock' => $producto['stock']
+                    ]
+                );
+            }
+            return true; 
+        }
+        catch (\Exception $e) 
+        {
+            return false; 
+        }
+    }
+    
+
 
 }

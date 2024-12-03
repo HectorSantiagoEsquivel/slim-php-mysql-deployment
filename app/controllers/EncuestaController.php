@@ -2,6 +2,8 @@
 
 require_once './utils/Validador.php';
 use App\Models\Encuesta;
+use App\Models\Accion;
+
 
 class EncuestaController 
 {

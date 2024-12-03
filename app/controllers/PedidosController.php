@@ -8,6 +8,7 @@ use App\Models\Pedido;
 use App\Models\PedidoProducto;
 use App\Models\Mesa;
 use App\Models\Producto;
+use App\Models\Accion;
 
 
 
@@ -22,7 +23,7 @@ class PedidosController implements IApiUsable
         $usuarioData = $request->getAttribute('usuarioData');
         $idMozo=$usuarioData->id;
         $areaUsuario=$usuarioData->area;
-
+        $accion=$usuarioData->nombre." intento abrir un pedido en la mesa: ".$mesa->id;
 
         if($mesa->estado=='disponible')
         {
@@ -31,7 +32,7 @@ class PedidosController implements IApiUsable
                 $mesa->estado='ocupada';
                 $mesa->ModificarMesa();
                 $pedidoId = Pedido::CrearPedido($idMesa,$idMozo);
-
+                $accion=$usuarioData->nombre." abrio un pedido en la mesa: ".$mesa->id;
                 $payload = json_encode(["mensaje" => "Pedido creado con éxito", "idPedido" => $pedidoId]);
             }
             else
@@ -44,6 +45,7 @@ class PedidosController implements IApiUsable
         {
             $payload = json_encode(["mensaje" => "Mesa no disponible"]);
         }
+        Accion::GuardarAccion($idMozo,$accion);
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -55,6 +57,8 @@ class PedidosController implements IApiUsable
         $tiposArchivoValidos=array ("png","jpg","jpeg");
         $tipo_archivo = $_FILES['archivo']['type'];
         $tamano_archivo = $_FILES['archivo']['size'];
+        $usuarioData = $request->getAttribute('usuarioData');
+        
 
         $params = $request->getParsedBody();
         $idPedido=$params['idPedido'];
@@ -71,16 +75,20 @@ class PedidosController implements IApiUsable
                 $pedido->rutaImagen=$ruta_destino;   
                 $pedido->ModificarPedido();
                 $payload = json_encode(["mensaje" => "Imagen subida correctamente"]);
+                $accion=$usuarioData->usuario." subio la imagen del pedido: ".$pedido->id;
             }
             else 
             {
                 $payload = json_encode(["mensaje" => "La extensión o el tamaño de los archivos no es correcta."]);
+                $accion=$usuarioData->usuario." intento subir la imagen del pedido: ".$pedido->id;
             }
         }
         else
         {
             $payload = json_encode(["mensaje" => "Pedido no encontrado"]);
+            $accion=$usuarioData->usuario." intento subir una imagen a un pedido no valido";
         }
+        Accion::GuardarAccion($usuarioData->id,$accion);
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
 
@@ -94,6 +102,7 @@ class PedidosController implements IApiUsable
         $idProducto=$params['idProducto'];
         $cantidad=$params['cantidad'];
         $pedido=Pedido::ObtenerPedido($idPedido);
+        $usuarioData = $request->getAttribute('usuarioData');
         
         if($pedido)
         {
@@ -105,10 +114,12 @@ class PedidosController implements IApiUsable
                 {
                     PedidoProducto::AgregarProducto($idPedido,$idProducto,$cantidad);
                     $payload = json_encode(["mensaje" => "Producto agregado exitosamente"]);
+                    $accion=$usuarioData->usuario." agrego ".$producto->nombre." al pedido: ".$pedido->id;
                 }
                 else 
                 {
                     $payload = json_encode(["mensaje" => "Producto no disponible"]); 
+                    $accion=$usuarioData->usuario." trato de agregar ".$producto->nombre." al pedido: ".$pedido->id;
                 }
 
             }
@@ -121,6 +132,7 @@ class PedidosController implements IApiUsable
         {
             $payload = json_encode(["mensaje" => "Pedido no encontrado"]);
         }
+        Accion::GuardarAccion($usuarioData->usuario,$accion);
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -130,25 +142,26 @@ class PedidosController implements IApiUsable
         $usuarioData = $request->getAttribute('usuarioData');
         $estado = $args['estado'];  
         $filtro=null;
-
+        $accion=$usuarioData->usuario." intento listar pedidos por un estado incorrecto";
         switch ($estado) 
         {
             case 'pendiente':
                 $filtro = [
                     'productos.area' => $usuarioData->area,
                     'pedidosproductos.estado' => $estado,];
+                    $accion=$usuarioData->usuario." listo pedidos pendientes";
                 break;
             case 'preparacion':
                 $filtro = [
                     'pedidosproductos.idEmpleado' => $usuarioData->id,
-                    'pedidosproductos.estado' => $estado,
-                ];
+                    'pedidosproductos.estado' => $estado,];
+                    $accion=$usuarioData->usuario." listo pedidos en preparacion";
                 break;
             case 'listo':
                 $filtro = [
 
-                    'pedidosproductos.estado' => $estado,
-                ];
+                    'pedidosproductos.estado' => $estado,];
+                    $accion=$usuarioData->usuario." listo pedidos listos";
                 break;
             default:
                 $payload = json_encode(["mensaje" => "Estado no válido"]);
@@ -161,7 +174,7 @@ class PedidosController implements IApiUsable
             $payload = json_encode(["productos" => $productos]);
         }
 
-
+        Accion::GuardarAccion($usuarioData->id,$accion);
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -171,15 +184,17 @@ class PedidosController implements IApiUsable
         $params = $request->getParsedBody();
         $idPedidoProducto = $params['idPedidoProducto'];
         $usuarioData = $request->getAttribute('usuarioData'); 
-        
+        $accion=$usuarioData->usuario." intento cambiar estado de un producto";
     
         $pedidoProducto = PedidoProducto::ObtenerPedidoProducto($idPedidoProducto);
         $datosProducto=$pedidoProducto->ObtenerDatosProducto();
 
         if ($pedidoProducto) 
         {
+          
             switch ($pedidoProducto->estado) 
             {
+                
                 case 'pendiente':
 
                     if($usuarioData->area==$datosProducto->area)
@@ -191,6 +206,7 @@ class PedidosController implements IApiUsable
                             $pedidoProducto->idEmpleado=$usuarioData->id;
                             $pedidoProducto->estado="preparacion";
                             $pedidoProducto->ModificarPedidoProducto();
+                            $accion=$usuarioData->usuario." tomo un pedido";
                             $payload = json_encode(["mensaje" => "Empleado asignado exitosamente"]);
                         }
                         else
@@ -201,6 +217,7 @@ class PedidosController implements IApiUsable
                     }
                     else
                     {
+                      
                         $payload = json_encode(["mensaje" => "Responsabilidad incorrecta"]);
                     }
                     break;
@@ -209,6 +226,7 @@ class PedidosController implements IApiUsable
                     {
                         $pedidoProducto->estado = 'listo';
                         $pedidoProducto->ModificarPedidoProducto(); 
+                        $accion=$usuarioData->usuario." marco pedido como listo para entregar";
                         $payload = json_encode(["mensaje" => "Producto marcado como listo para servir"]);
     
                     }
@@ -224,7 +242,7 @@ class PedidosController implements IApiUsable
                         $pedidoProducto->estado = 'entregado';
                         $pedidoProducto->ModificarPedidoProducto();
                         $pedidoProducto->CargarTiempoTotal();  
-    
+                        $accion=$usuarioData->usuario." entrego un pedido";
                         $payload = json_encode(["mensaje" => "Producto marcado como entregado"]);
     
                     }
@@ -243,7 +261,7 @@ class PedidosController implements IApiUsable
         {
             $payload = json_encode(["mensaje" => "Producto no encontrado"]);
         }
-        
+        Accion::GuardarAccion($usuarioData->id,$accion);
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -303,7 +321,7 @@ class PedidosController implements IApiUsable
         $pedido = Pedido::ObtenerPedido($idPedido);
         $usuarioData = $request->getAttribute('usuarioData');
         $idMozo=$usuarioData->id;
-        
+        $accion=$usuarioData->usuario. " intento cobrar una cuenta";
         if ($pedido) 
         {
             if ($pedido->estado == 'activo') 
@@ -334,6 +352,7 @@ class PedidosController implements IApiUsable
                             'total' => $total,
                             'mensaje' => 'La cuenta ha sido cobrada y el pedido está cerrado.'
                         ]);
+                        $accion=$usuarioData->usuario. " cobro un pedido y cerro la cuenta";
                     }
                     else
                     {
@@ -357,7 +376,7 @@ class PedidosController implements IApiUsable
                 'mensaje' => 'Pedido no encontrado.'
             ]);
         }
-
+        Accion::GuardarAccion($usuarioData->id,$accion);
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }

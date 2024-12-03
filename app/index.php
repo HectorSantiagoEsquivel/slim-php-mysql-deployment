@@ -23,6 +23,7 @@ require_once './controllers/MesaController.php';
 require_once './controllers/ProductoController.php';
 require_once './controllers/PedidosController.php';
 require_once './controllers/EncuestaController.php';
+require_once './controllers/PDFController.php';
 // Load ENV
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->safeLoad();
@@ -83,6 +84,7 @@ $app->group('/mesas', function (RouteCollectorProxy $group)
 $app->group('/productos', function (RouteCollectorProxy $group) 
 {
   $group->get('[/]', \ProductoController::class . ':TraerTodos');
+  $group->get('/DescargarCSV', \ProductoController::class . ':DescargarCSV');
   $group->get('/{producto}', \ProductoController::class . ':TraerUno');
   $group->post('[/]', \ProductoController::class . ':CargarUno');
   $group->post('/modificar', \ProductoController::class . ':ModificarUno');
@@ -104,7 +106,10 @@ $app->group('/pedidos', function (RouteCollectorProxy $group) {
 $app->group('/clientes', function (RouteCollectorProxy $group) {
   $group->get('/{pedido}', \PedidosController::class . ':TraerUno');
   $group->post('[/]', \EncuestaController::class . ':CargarEncuesta');
+});
 
+$app->group('/Menu', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \PDFController::class . ':DescargarPDF');
 });
 
 $app->group('/estadisticas', function (RouteCollectorProxy $group) {

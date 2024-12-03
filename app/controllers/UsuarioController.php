@@ -8,6 +8,7 @@ require_once './utils/AutentificadorJWT.php';
 use App\Models\Usuario;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use App\Models\Accion;
 
 class UsuarioController implements IApiUsable
 {
@@ -128,9 +129,9 @@ class UsuarioController implements IApiUsable
 
         if ($usuario->Autenticar($clave)) 
         {
-          $usuarioData = ['id' => $usuario->id, 'area' => $usuario->area];
+          $usuarioData = ['id' => $usuario->id, 'area' => $usuario->area, 'nombre' => $usuario->usuario];
           $token = AutentificadorJWT::CrearToken($usuarioData);
-
+          Accion::GuardarAccion($usuario->id,$usuario->usuario." se loggeo");
           $payload = json_encode(['token' => $token]);
         } 
         else
