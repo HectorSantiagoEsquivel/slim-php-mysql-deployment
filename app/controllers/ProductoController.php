@@ -118,7 +118,6 @@ class ProductoController implements IApiUsable
     {
         
         $datosCSV = Producto::GenerarCSV();
-
         
         $response = $response->withHeader('Content-Type', 'text/csv')
                              ->withHeader('Content-Disposition', 'attachment; filename="productos.csv"');
@@ -129,18 +128,18 @@ class ProductoController implements IApiUsable
         return $response;
     }
 
-    public function UploadCSV($request, $response, $args)
+    public function SubirCSV($request, $response, $args)
     {
       
       $tiposArchivoValidos = ["csv"];      
-      $uploadedFiles = $request->getUploadedFiles();
-      $csvFile = $uploadedFiles['archivo'];
-      $tipo_archivo = $csvFile->getClientMediaType();
+      $archivos = $request->getUploadedFiles();
+      $archivoCSV = $archivos['archivo'];
+      $tipo_archivo = $archivoCSV->getClientMediaType();
 
       if (Validador::ValidarTipoArchivo($tipo_archivo, $tiposArchivoValidos)) 
       {
-        $csvPath = $csvFile->getStream()->getMetadata('uri');  
-        if (Producto::processCSVFile($csvPath)) 
+        $rutaCSV = $archivoCSV->getStream()->getMetadata('uri');  
+        if (Producto::CargarDeCSV($rutaCSV)) 
         {
           $payload = json_encode(["mensaje" => "Productos subidos con exito"]);
         } 
@@ -153,6 +152,10 @@ class ProductoController implements IApiUsable
       {  
         $payload = json_encode(["mensaje" => "Tipo no valido, solo se permite csv"]);
       }
+
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
     }    
+
 
 }

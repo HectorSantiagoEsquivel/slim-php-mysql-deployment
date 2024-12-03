@@ -26,6 +26,12 @@ class MiddlewareUsuarios
         AutentificadorJWT::VerificarToken($token);       
                
         $usuarioData = AutentificadorJWT::ObtenerData($token);
+
+        
+        if (!isset($usuarioData->id) || !isset($usuarioData->usuario)) 
+        {
+            throw new Exception("El token no contiene los datos necesarios");
+        }
         
         
         if (Validador::ValidarPalabra($usuarioData->area,$this->areasValidas)) 

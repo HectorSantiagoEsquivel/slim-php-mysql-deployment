@@ -13,14 +13,25 @@ class Encuesta extends Model
         'idPedido',
         'puntaje',
         'reseña',
+        'puntajeMesa',
+        'puntajeRestaurante',
+        'puntajeMozo',
+        'puntajeCocinero'
     ];
 
-    public static function CrearEncuesta($idPedido,$puntaje,$reseña)
+    public static function CrearEncuesta($idPedido, $puntajeMesa, $puntajeRestaurante, $puntajeMozo, $puntajeCocinero, $reseña)
     {
+        
+        $puntajePromedio = ($puntajeMesa + $puntajeRestaurante + $puntajeMozo + $puntajeCocinero) / 4;
+
         return Encuesta::create([
             'idPedido' => $idPedido,
-            'puntaje' => $puntaje,
-            'reseña' => $reseña
+            'puntaje' => $puntajePromedio,
+            'reseña' => $reseña,
+            'puntajeMesa' => $puntajeMesa,
+            'puntajeRestaurante' => $puntajeRestaurante,
+            'puntajeMozo' => $puntajeMozo,
+            'puntajeCocinero' => $puntajeCocinero,
         ]);
     }
 
@@ -28,5 +39,5 @@ class Encuesta extends Model
     {
         return Encuesta::orderBy('puntaje', 'desc')->get();
     }
-
 }
+

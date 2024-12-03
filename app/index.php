@@ -89,6 +89,7 @@ $app->group('/productos', function (RouteCollectorProxy $group)
   $group->post('[/]', \ProductoController::class . ':CargarUno');
   $group->post('/modificar', \ProductoController::class . ':ModificarUno');
   $group->post('/borrar', \ProductoController::class . ':BorrarUno');
+  $group->post('/SubirCSV', \ProductoController::class . ':SubirCSV');
   
 })->add(new MiddlewareUsuarios(["socio"]));
 

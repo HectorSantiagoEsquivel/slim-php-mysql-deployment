@@ -134,11 +134,17 @@ class PedidoProducto extends Model
         $detallesPedido = [
             'idPedido' => $pedidoProductosPorPedido->first()->idPedido,  
             'mesa' => $pedidoProductosPorPedido->first()->idMesa,        
-            'mozo' => $pedidoProductosPorPedido->first()->idMozo,        
-            'productos' => []                                     
+            'mozo' => $pedidoProductosPorPedido->first()->idMozo, 
+            'tiempoEstimadoTotal' => 0,       
+            'productos' => []                                          
         ];
-        foreach ($pedidoProductosPorPedido as $producto) {
+        foreach ($pedidoProductosPorPedido as $producto) 
+        {
             $detallesPedido['productos'][] = $producto->FormatearDetalle();
+            if ($producto->tiempoEstimado > $detallesPedido['tiempoEstimadoTotal']) 
+            {
+                $detallesPedido['tiempoEstimadoTotal'] = $producto->tiempoEstimado;
+            }
         }
 
         return $detallesPedido;

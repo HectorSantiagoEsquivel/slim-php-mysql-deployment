@@ -129,7 +129,7 @@ class UsuarioController implements IApiUsable
 
         if ($usuario->Autenticar($clave)) 
         {
-          $usuarioData = ['id' => $usuario->id, 'area' => $usuario->area, 'nombre' => $usuario->usuario];
+          $usuarioData = ['id' => $usuario->id, 'area' => $usuario->area, 'usuario' => $usuario->usuario];
           $token = AutentificadorJWT::CrearToken($usuarioData);
           Accion::GuardarAccion($usuario->id,$usuario->usuario." se loggeo");
           $payload = json_encode(['token' => $token]);

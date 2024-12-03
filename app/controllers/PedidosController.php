@@ -23,7 +23,7 @@ class PedidosController implements IApiUsable
         $usuarioData = $request->getAttribute('usuarioData');
         $idMozo=$usuarioData->id;
         $areaUsuario=$usuarioData->area;
-        $accion=$usuarioData->nombre." intento abrir un pedido en la mesa: ".$mesa->id;
+        $accion=$usuarioData->usuario." intento abrir un pedido en la mesa: ".$mesa->id;
 
         if($mesa->estado=='disponible')
         {
@@ -32,7 +32,7 @@ class PedidosController implements IApiUsable
                 $mesa->estado='ocupada';
                 $mesa->ModificarMesa();
                 $pedidoId = Pedido::CrearPedido($idMesa,$idMozo);
-                $accion=$usuarioData->nombre." abrio un pedido en la mesa: ".$mesa->id;
+                $accion=$usuarioData->usuario." abrio un pedido en la mesa: ".$mesa->id;
                 $payload = json_encode(["mensaje" => "Pedido creado con éxito", "idPedido" => $pedidoId]);
             }
             else
@@ -132,7 +132,7 @@ class PedidosController implements IApiUsable
         {
             $payload = json_encode(["mensaje" => "Pedido no encontrado"]);
         }
-        Accion::GuardarAccion($usuarioData->usuario,$accion);
+        Accion::GuardarAccion($usuarioData->id,$accion);
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }

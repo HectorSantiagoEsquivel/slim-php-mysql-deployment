@@ -44,6 +44,10 @@ class Producto extends Model
     {
         return Producto::find($id);
     }
+    public static function obtenerProductoNoDisponible($id)
+    {
+        return Producto::withoutGlobalScope('disponible')->find($id);
+    }
 
     public function modificarProducto()
     {
@@ -51,6 +55,7 @@ class Producto extends Model
             'nombre' => $this->nombre,
             'precio' => $this->precio,
             'area' => $this->area,
+            'disponible' => $this->disponible,
         ]);
     }
     
@@ -88,58 +93,55 @@ class Producto extends Model
     
     }
 
-    public static function processCSVFile(string $csvPath): bool
+    public static function CargarDeCSV($rutaCSV): bool
     {
         $productos = [];
     
-        
-        if (($fileHandle = fopen($csvPath, 'r')) === false) 
-        {
+        if (($fileHandle = fopen($rutaCSV, 'r')) === false) {
             return false;
         }
     
-        while (($line = fgets($fileHandle)) !== false) 
-        {
-            $lineElements = explode(',', $line);
+        fgetcsv($fileHandle); // Skip header
     
-            
-            if (count($lineElements) < 4) 
-            {
+        while (($line = fgetcsv($fileHandle)) !== false) {
+            if (count($line) < 5) {
                 continue;
             }
-    
             $productos[] = [
-                'id' => trim($lineElements[0]),
-                'nombre' => trim($lineElements[1]),
-                'precio' => floatval(trim($lineElements[2])),
-                'stock' => intval(trim($lineElements[3]))
+                'id' => intval(trim($line[0])),
+                'nombre' => trim($line[1]),
+                'precio' => floatval(trim($line[2])),
+                'area' => trim($line[3]),
+                'disponible' => intval(trim($line[4]))
             ];
         }
     
         fclose($fileHandle); 
-    
-        
-        try 
-        {
+        try {
             foreach ($productos as $producto) 
             {
-                self::updateOrCreate(
-                    ['id' => $producto['id']],
-                    [
-                        'nombre' => $producto['nombre'],
-                        'precio' => $producto['precio'],
-                        'stock' => $producto['stock']
-                    ]
-                );
+                $productoCargado=self::obtenerProductoNoDisponible($producto['id']);
+                
+                if ($productoCargado) 
+                {
+                  
+                    $productoCargado->nombre=$producto['nombre'];
+                    $productoCargado->precio=$producto['precio'];
+                    $productoCargado->area=$producto['area'];
+                    $productoCargado->disponible=$producto['disponible'];
+                    $productoCargado->modificarProducto();
+                } 
+                else
+                {
+                    
+                    self::crearProducto($producto['nombre'],$producto['precio'],$producto['area'],$producto['disponible']);
+                }
             }
-            return true; 
-        }
-        catch (\Exception $e) 
-        {
-            return false; 
+            return true;
+        } catch (\Exception $e) {
+            error_log('Error: ' . $e->getMessage());
+            return false;
         }
     }
     
-
-
 }
